@@ -22,7 +22,8 @@ declare -r PROJECT=$(gcloud config list project --format "value(core.project)")
 declare -r JOB_ID="flowers_${USER}_$(date +%Y%m%d_%H%M%S)"
 declare -r BUCKET="gs://${PROJECT}-ml"
 declare -r GCS_PATH="${BUCKET}/${USER}/${JOB_ID}"
-declare -r DICT_FILE=gs://cloud-samples-data/ml-engine/flowers/dict.txt
+#declare -r DICT_FILE=gs://cloud-samples-data/ml-engine/flowers/dict.txt
+declare -r DICT_FILE=gs://tamucc_coastline/dict.txt
 
 declare -r MODEL_NAME=flowers
 declare -r VERSION_NAME=v1
@@ -39,13 +40,15 @@ set -v -e
 # CPU's.  Check progress here: https://console.cloud.google.com/dataflow
 python trainer/preprocess.py \
   --input_dict "$DICT_FILE" \
-  --input_path "gs://cloud-samples-data/ml-engine/flowers/eval_set.csv" \
+  #--input_path "gs://cloud-samples-data/ml-engine/flowers/eval_set.csv" \
+  --input_path "gs://cloud-datalab/sampledata/coast/eval.csv" \
   --output_path "${GCS_PATH}/preproc/eval" \
   --cloud
 
 python trainer/preprocess.py \
   --input_dict "$DICT_FILE" \
-  --input_path "gs://cloud-samples-data/ml-engine/flowers/train_set.csv" \
+  #--input_path "gs://cloud-samples-data/ml-engine/flowers/train_set.csv" \
+  --input_path "gs://cloud-datalab/sampledata/coast/train.csv" \  
   --output_path "${GCS_PATH}/preproc/train" \
   --cloud
 
@@ -62,6 +65,8 @@ gcloud ml-engine jobs submit training "$JOB_ID" \
   --output_path "${GCS_PATH}/training" \
   --eval_data_paths "${GCS_PATH}/preproc/eval*" \
   --train_data_paths "${GCS_PATH}/preproc/train*"
+
+tensorboard --logdir=${GCS_PATH}/training --port=8080
 
 # Tell CloudML about a new type of model coming.  Think of a "model" here as
 # a namespace for deployed Tensorflow graphs.
@@ -81,9 +86,13 @@ gcloud ml-engine versions create "$VERSION_NAME" \
 gcloud ml-engine versions set-default "$VERSION_NAME" --model "$MODEL_NAME"
 
 # Finally, download a daisy and so we can test online prediction.
-gsutil cp \
-  gs://cloud-samples-data/ml-engine/flowers/daisy/100080576_f52e8ee070_n.jpg \
-  daisy.jpg
+
+#gsutil cp \
+#  gs://cloud-samples-data/ml-engine/flowers/daisy/100080576_f52e8ee070_n.jpg \
+#  daisy.jpg
+
+gsutil cp gs://tamucc_coastline/esi_images/IMG_3740_SABay_2013.JPG 10A.JPG
+
 
 # Since the image is passed via JSON, we have to encode the JPEG string first.
 python -c 'import base64, sys, json; img = base64.b64encode(open(sys.argv[1], "rb").read()); print json.dumps({"key":"0", "image_bytes": {"b64": img}})' daisy.jpg &> request.json
