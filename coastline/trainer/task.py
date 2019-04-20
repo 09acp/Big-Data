@@ -78,7 +78,7 @@ if __name__ == "__main__":
         dest = "augment", 
         action = "store_true"
     )
-    parser.set_defaults(augment = False)
+    parser.set_defaults(augment = True)  #(augment = False)
 
     # optional hyperparameters used by cnn
     parser.add_argument(
